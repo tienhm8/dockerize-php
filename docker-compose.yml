@@ -1,0 +1,150 @@
+services:
+# PHP
+  app:
+    build:
+      context: ./docker/php
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - ./docker/php/opcache.ini:/usr/local/etc/php/conf.d/opcache.ini
+    networks:
+      - app-network
+      - mariadb-network
+      # - mysql-network
+      # - postgres-network
+      # - mongo-network
+      # - redis-network      
+    depends_on:
+      - mariadb
+      # - mysql
+      # - postgres
+      # - mongo
+      # - redis
+# Webservice
+## Nginx
+  nginx:
+    image: nginx:1.27.0-alpine
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d
+    networks:
+      - app-network
+    ports:
+      - "8000:80"
+## Apache2
+  # apache:
+  #   image: httpd:2.4-alpine
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./src:/usr/local/apache2/htdocs/
+  #     - ./docker/apache/httpd.conf:/usr/local/apache2/conf/httpd.conf
+  #   networks:
+  #     - app-network
+  #   ports:
+  #     - "8080:80"
+# Database
+## MariaDB
+  mariadb:
+    image: mariadb:11.4.2
+    restart: unless-stopped
+    volumes:
+        - ./docker/mariadb/data:/var/lib/mysql
+        - ./docker/mariadb/logs:/var/log/mysql
+        - ./docker/mariadb/conf:/etc/mysql
+    environment:
+        MARIADB_DATABASE: "${MYSQL_DATABASE}"
+        MARIADB_USER: "${MYSQL_USER}"
+        MARIADB_PASSWORD: "${MYSQL_PASSWORD}"
+        MARIADB_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+    networks:
+      - mariadb-network    
+    ports:
+        - "3306:3306"
+## MySQL
+  # mysql:
+  #   image: mysql:9.0.0
+  #   volumes:
+  #     - ./docker/mysql/data:/var/lib/mysql
+  #     - ./docker/mysql/logs:/var/log/mysql
+  #     - ./docker/marmysqliadb/conf:/etc/mysql
+  #   environment:
+  #     MYSQL_DATABASE: "${MYSQL_DATABASE}"
+  #     MYSQL_USER: "${MYSQL_USER}"
+  #     MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+  #     MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+  #   networks:
+  #     - mysql-network    
+  #   ports:
+  #     - "3306:3306"
+## phpMyadmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mariadb
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+    networks:
+      - mariadb-network
+      # - mysql-network
+    ports:
+      - "8080:80"
+## Postgres
+  # postgres:
+  #   image: postgres:15.7
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./docker/postgres/data:/var/lib/postgresql/data
+  #   environment:
+  #     POSTGRES_DB: "${MYSQL_DATABASE}"
+  #     POSTGRES_USER: "${MYSQL_USER}"
+  #     POSTGRES_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+  #   networks:
+  #     - postgres-network
+  #   ports:
+  #     - "5432:5432"
+## MongoDB
+  # mongo:
+  #   image: mongo:7.0.12-jammy
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./docker/mongo/data:/data/db
+  #   environment:
+  #     MONGO_INITDB_DATABASE: mydatabase
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: example
+  #   networks:
+  #     - mongo-network
+  #   ports:
+  #     - "27017:27017"
+## Redis
+  # redis:
+  #   image: redis:7.2.5-alpine
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./docker/redis/data:/data
+  #   environment:
+  #     ALLOW_EMPTY_PASSWORD: "yes"
+  #   networks:
+  #     - redis-network
+  #   ports:
+  #     - "6379:6379"
+## Mailhog
+# mailhog:
+#   image: mailhog/mailhog:latest
+#   restart: unless-stopped
+#   ports:
+#     - "8025:8025"  # Web interface port
+#     - "1025:1025"  # SMTP port
+#   networks:
+#     - app-network
+
+networks:
+  app-network:
+  mariadb-network:
+  # mysql-network:
+  # postgres-network:
+  # mongo-network:
+  # redis-network:
+    driver: bridge
