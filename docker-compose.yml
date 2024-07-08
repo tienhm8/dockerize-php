@@ -4,6 +4,9 @@ services:
     build:
       context: ./docker/php
     restart: unless-stopped
+    user: 1000:1000
+    environment:
+      PHP_IDE_CONFIG: "serverName=${SERVER_NAME}"
     volumes:
       - ./src:/var/www/html
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
@@ -14,13 +17,16 @@ services:
       # - mysql-network
       # - postgres-network
       # - mongo-network
-      # - redis-network      
+      # - redis-network    
+      # - rabbitmq-network  
     depends_on:
-      - mariadb
+       - mariadb
       # - mysql
       # - postgres
       # - mongo
       # - redis
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # For Linux
 # Webservice
 ## Nginx
   nginx:
@@ -32,7 +38,7 @@ services:
     networks:
       - app-network
     ports:
-      - "8000:80"
+      - "${NGINX_PORT}:80"
 ## Apache2
   # apache:
   #   image: httpd:2.4-alpine
@@ -43,9 +49,9 @@ services:
   #   networks:
   #     - app-network
   #   ports:
-  #     - "8080:80"
+  #     - "${APACHE_PORT}:80"
 # Database
-## MariaDB
+# MariaDB
   mariadb:
     image: mariadb:11.4.2
     restart: unless-stopped
@@ -61,7 +67,7 @@ services:
     networks:
       - mariadb-network    
     ports:
-        - "3306:3306"
+        - "${MYSQL_PORT}:3306"
 ## MySQL
   # mysql:
   #   image: mysql:9.0.0
@@ -77,8 +83,8 @@ services:
   #   networks:
   #     - mysql-network    
   #   ports:
-  #     - "3306:3306"
-## phpMyadmin
+  #     - "${MYSQL_PORT}:3306"
+# phpMyadmin
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     restart: unless-stopped
@@ -89,7 +95,7 @@ services:
       - mariadb-network
       # - mysql-network
     ports:
-      - "8080:80"
+      - "${PHPMYADMIN_PORT}:80"
 ## Postgres
   # postgres:
   #   image: postgres:15.7
@@ -103,7 +109,7 @@ services:
   #   networks:
   #     - postgres-network
   #   ports:
-  #     - "5432:5432"
+  #     - "${POSTGRES_PORT}:5432"
 ## MongoDB
   # mongo:
   #   image: mongo:7.0.12-jammy
@@ -117,7 +123,7 @@ services:
   #   networks:
   #     - mongo-network
   #   ports:
-  #     - "27017:27017"
+  #     - "${MONGO_PORT}:27017"
 ## Redis
   # redis:
   #   image: redis:7.2.5-alpine
@@ -129,16 +135,28 @@ services:
   #   networks:
   #     - redis-network
   #   ports:
-  #     - "6379:6379"
+  #     - "${REDIS_PORT}:6379"
 ## Mailhog
 # mailhog:
 #   image: mailhog/mailhog:latest
 #   restart: unless-stopped
 #   ports:
-#     - "8025:8025"  # Web interface port
-#     - "1025:1025"  # SMTP port
+#     - "${MAILHOG_PORT}:8025"  # Web interface port
+#     - "${SMTP_PORT}:1025"  # SMTP port
 #   networks:
 #     - app-network
+# # RabbitMQ
+# rabbitmq:
+#   image: rabbitmq:3-management-alpine
+#   restart: unless-stopped
+#   environment:
+#     RABBITMQ_DEFAULT_USER: user
+#     RABBITMQ_DEFAULT_PASS: password
+#   networks:
+#     - rabbitmq-network
+#   ports:
+#     - "${RABBITMQ_SERVER_PORT}:5672"  # RabbitMQ server port
+#     - "${RABBITMQ_UI_PORT}:15672"  # Management UI port
 
 networks:
   app-network:
@@ -147,4 +165,5 @@ networks:
   # postgres-network:
   # mongo-network:
   # redis-network:
+  # rabbitmq-network:
     driver: bridge

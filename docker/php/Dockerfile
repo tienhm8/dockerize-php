@@ -10,14 +10,11 @@ ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/do
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
     && pecl install uploadprogress \
     && docker-php-ext-enable uploadprogress \
-    # Install xdebug
-    && pecl install xdebug \
-    && docker-php-ext-enable xdebug \
     # Install apcu
     && pecl install apcu \
     && docker-php-ext-enable apcu \
     # Config GD
-    && docker-php-ext-configure gd --with-jpeg=/usr/include/ --with-freetype=/usr/include/ \
+    # && docker-php-ext-configure gd --with-jpeg=/usr/include/ --with-freetype=/usr/include/ \
     && apk del .build-deps $PHPIZE_DEPS \
     && chmod uga+x /usr/local/bin/install-php-extensions && sync \
     && install-php-extensions bcmath \
@@ -43,6 +40,8 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
             mysqli \
             # Install OpCache
             opcache \
+            # Install Xdebug
+            xdebug \
             openssl \
             pdo \
             pdo_mysql \
@@ -54,7 +53,6 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
             xmlrpc \
             xsl \
             zip \
-    &&  echo -e "\n xhprof.output_dir='/var/tmp/xhprof'" >> /usr/local/etc/php/conf.d/docker-php-ext-xhprof.ini \
     && cd ~ \
     # modify www-data user to have id 1000
     && apk add \
@@ -67,11 +65,10 @@ RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
     && apk del .shadow-deps
 
 # Config xdebug
-    COPY ./docker/php/xdebug.ini /usr/local/etc/php/conf.d/xdebug.ini
+COPY xdebug.ini /usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+
+# Set working directory
+WORKDIR /var/www/html
 
 # Install composer
-    RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
-    && php -r "copy('https://composer.github.io/installer.sig', 'signature');" \
-    && php -r "if (hash_file('SHA384', 'composer-setup.php') === trim(file_get_contents('signature'))) { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('composer-setup.php'); } echo PHP_EOL;" \
-    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
-    && php -r "unlink('composer-setup.php');"
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
